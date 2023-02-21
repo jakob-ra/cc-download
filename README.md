@@ -34,16 +34,15 @@
 ## Purpose
 
 [CommonCrawl](https://commoncrawl.org/the-data/get-started/) is a nonprofit organization that crawls the web and freely
-provides its archives and datasets to the public. The Common Crawl corpus contains petabytes of data collected since
-2013. It contains monthly updates of raw web page data that are hosted as WARC files on Amazon Web Services' (AWS) S3
+provides its archives and datasets to the public. The Common Crawl corpus contains petabytes of data collected since 2013. It contains monthly updates of raw web page data that are hosted as WARC files on Amazon Web Services' (AWS) S3
 storage servers located in the US-East-1 (Northern Virginia) AWS Region.
 
 This script was written with the purpose of downloading and processing the raw web page data for a user-provided list of
 domain names (e.g. apple.com, walmart.com, microsoft.com). We first get the byte range within the WARC file where a
 specific subpage is stored by querying the CommonCrawl Index via Athena. Using the byte range, the raw html of a webpage
-is downloaded and parsed into clear text. Then all passages around mentions of a user-provided list of keywords are
-extracted. The passages, along with information about their source are uploaded in batches of csv files to S3. The
-output files can then be downloaded or further processed. The output files have the following format:
+is downloaded and processed according to a user-provided processing function. The results, along with information about
+their source are uploaded in batches of csv files to S3. The output files can then be downloaded or further processed.
+The output files have the following format:
 
 ![image](https://user-images.githubusercontent.com/49194118/199245335-a00f27ad-01e4-470b-8a06-4f06a8efd4cb.png)
 
@@ -105,9 +104,6 @@ Provide the role's ARN that you just copied under config.yml > batch_role.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-### Subnet masks & security groups
-
-
 ### Creating a bucket for the project
 
 Navigate to the [S3 console](https://s3.console.aws.amazon.com/s3/buckets?region=us-east-1) and create a bucket for your
@@ -117,8 +113,7 @@ project in the US-East-1 region. The bucket can be private or public.
 
 ### Uploading URL list
 
-In the bucket you created, create a folder and in it, upload the list of domain names that you are interested in as a
-csv file. *Warning:* URLs should not contain "https" or "www." upfront, just the domain name (e.g. apple.com). The URLs
+In the bucket you created, create a folder. In it, upload the list of domain names that you are interested in as one or multiple csv files. *Warning:* URLs should not contain "https" or "www." upfront, just the domain name (e.g. apple.com). The URLs
 should not be contained within quotes (apple.com, not "apple.com"). 
 
 Provide the full S3 path of the *folder* (not the
@@ -150,13 +145,13 @@ have two ways of selecting a subset of subpages per domain:
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-### Providing keyword and URL keyword lists
+### Providing a custom processing function
 
-Your keyword lists (what will be searched for in the actual body of a webpage) and URL keyword lists (what will be
-searched for in the subpage URLs) need to be accessible to the containers spawned by AWS Batch. You can upload them as
-csv files to the S3 bucket you created and provide their full S3 path as parameters in config.yml > keywords_path and
-url_keywords_path. You could also upload them somewhere else, e.g. a public Github repo. Again, all input files should
-be csv.
+If you want to process the downloaded subpages in a custom way, you can provide a custom processing function. The
+function needs to be called process_page and take only one argument, the downloaded page. It should return any data you
+want to save from the page. The function needs to be saved in a .py file: see cc-downloader/custom_processing_functions.py for reference. The path to the file needs to be provided under config.yml >
+custom_processing_function_path. The file needs to be accessible to the instances that run the download jobs, so it
+needs to be on S3, in a public GitHub repository, or on Drive, Dropbox, etc.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -209,7 +204,7 @@ Querying the CommonCrawl index usually takes around 2 minutes per Crawl. The dow
 
 As soon as the batch job is submitted, you can check its status in the [AWS Batch console](console.aws.amazon.com/batch). By clicking on the job and selecting 'child jobs', you can see the status of each child jobs (the number of which is the number of subpages to download divided by your batch size). To debug, you can also check the logs of each child job in the [CloudWatch console](https://console.aws.amazon.com/cloudwatch) or by clicking on the child job and selecting 'logging'. A container could also fail because it ran out of memory. You would see this by selecting 'JSON' in the child job details, there should an exit code and a reason. In case of memory issues, you can increase the memory allocation to each container in config.yml > memory.
 
-Each successfully ran container will create an output file in the S3 bucket you specified under config.yml > s3path_output. You can check and download your output files by navigating to the [S3 console](https://s3.console.aws.amazon.com) and selecting your output bucket and folder.
+Each successfully ran job will create an output file in the S3 bucket you specified under config.yml > s3path_output. You can check and download your output files by navigating to the [S3 console](https://s3.console.aws.amazon.com) and selecting your output bucket and folder.
 
 <!-- LICENSE -->
 ## License
@@ -225,6 +220,6 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 
 Jakob Rauch - j.m.rauch@vu.nl
 
-Project Link: [https://github.com/jakob-ra/cc-downloader](https://github.com/jakob-ra/cc-downloader)
+Project Link: [https://github.com/jakob-ra/cc-download](https://github.com/jakob-ra/cc-downloader)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>

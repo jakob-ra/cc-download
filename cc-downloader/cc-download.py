@@ -6,14 +6,12 @@ import os
 import argparse
 import awswrangler as wr
 from utils import exponential_backoff
+import urllib.request
 
-def fetch_process_warc_records(row, s3client):
+def fetch_process_warc_records(row, s3client, page_process_func):
     """Fetch all WARC records defined by filenames and offsets in batch,
-    parse the records and the contained HTML, return all paragraphs containing at least one of the
-    keywords.csv"""
-    
-    """ New - keywords argument "full" returns full text rather than just areas around some keywords
-        and now we get both things in header and paragraph tags"""
+    parse the records and the contained HTML pages using the provided function page_process_func,
+    and return the results. """
 
     warc_path, offset, end = row.warc_filename, str(row.warc_record_offset), str(row.warc_record_end)
 
@@ -27,11 +25,7 @@ def fetch_process_warc_records(row, s3client):
     
     for record in ArchiveIterator(record_stream):
         page = record.content_stream().read()
-
-        if len(page) > 750000:
-            page = page[0:750000]
-
-        extracts += [page] # now trying to get simply the raw text
+        extracts += [page_process_func(page)]
 
     return extracts
 
@@ -41,7 +35,11 @@ if __name__ == "__main__":
     parser.add_argument("--batches_per_partition", type=int, required=True)
     parser.add_argument("--output_bucket", type=str, required=True)
     parser.add_argument("--result_output_path", type=str, required=True)
+    parser.add_argument("--link_page_processing_func", type=str, required=True)
     args = parser.parse_args()
+
+    urllib.request.urlretrieve(link_page_processing_func, "process_page_script.py")
+    from process_page_script import process_page
 
     if "AWS_BATCH_JOB_ARRAY_INDEX" in os.environ:
         batch_n = os.environ['AWS_BATCH_JOB_ARRAY_INDEX']
@@ -70,8 +68,8 @@ if __name__ == "__main__":
    # download paragraphs and fill into new column
     print('Starting download...')
     start = time.process_time()
-    df['paragraphs'] = df.apply(lambda row: fetch_process_warc_records(row, s3client), axis=1)
-    print(f'Success! Finished downloading in {time.process_time() - start} seconds.')
+    df['paragraphs'] = df.apply(lambda row: fetch_process_warc_records(row, s3client, process_page), axis=1)
+    print(f'Success! Finished downloading and processing in {time.process_time() - start} seconds.')
 
     # drop offsets
     df.drop(columns=['warc_filename', 'warc_record_offset', 'warc_record_end'], inplace=True)

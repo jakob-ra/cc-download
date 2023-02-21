@@ -42,10 +42,10 @@ if __name__ == '__main__':
 
     if answer == 'y':
         aws_batch = AWSBatch(req_batches, cfg["batch_size"], batches_per_partition, cfg['output_bucket'],
-                             result_output_path, cfg['image_name'], cfg['batch_role'], retry_attempts=cfg['retry_attempts'],
+                             result_output_path, cfg['image_name'], cfg['batch_role'],
+                             cfg['path_page_processing_func'], retry_attempts=cfg['retry_attempts'],
                              attempt_duration=cfg['attempt_duration'], keep_compute_env_job_queue=False,
-                             vcpus=cfg['vcpus'], memory=cfg['memory'],
-                             )
+                             vcpus=cfg['vcpus'], memory=cfg['memory'], )
         aws_batch.run()
     else:
         raise Exception('Download batch job aborted.')

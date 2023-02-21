@@ -42,8 +42,8 @@ class Athena_lookup():
     Athena_lookup object
     """
     def __init__(self, aws_params: dict, s3path_url_list, crawls: list, n_subpages: int, url_keywords: list,
-                 limit_pages_url_keywords=100, athena_price_per_tb=5, wait_seconds=3600,
-                 limit_cc_table=10000, keep_ccindex=False):
+                 filter_lang: Union[str, None] = None, limit_pages_url_keywords=100,
+                 athena_price_per_tb=5, wait_seconds=3600, limit_cc_table=10000, keep_ccindex=False):
         self.athena_client = boto3.client('athena')
         self.s3_client = boto3.client('s3')
         self.aws_params = aws_params
@@ -51,9 +51,11 @@ class Athena_lookup():
         self.crawls = crawls
         self.n_subpages = n_subpages
         self.url_keywords = url_keywords
+        self.filter_lang = filter_lang
         self.athena_price_per_tb = athena_price_per_tb
         self.wait_seconds = wait_seconds
-        self.limit_cc_table = limit_cc_table # to keep costs low for debugging; this should be None for full table
+        self.limit_cc_table = limit_cc_table  # to keep costs low for debugging; this should be None for
+        # full table
         self.total_cost = 0
         self.ccindex_table_name = 'ccindex'
         self.keep_ccindex = keep_ccindex
@@ -167,6 +169,8 @@ class Athena_lookup():
         if not self.keep_ccindex:
             query = f"""DROP TABLE IF EXISTS ccindex;"""
             self.execute_query(query)
+        query = f"""DROP TABLE IF EXISTS urls_merged_cc_all_langs;"""
+        self.execute_query(query)
         query = f"""DROP TABLE IF EXISTS urls_merged_cc;"""
         self.execute_query(query)
         query = f"""DROP TABLE IF EXISTS urls_merged_cc_to_download_unsorted;"""
@@ -237,7 +241,7 @@ class Athena_lookup():
         # if list of crawls specified, join them with OR: (crawl = 'CC-MAIN-2020-24' OR crawl = 'CC-MAIN-2020-52')
         crawls = '(' + ' OR '.join(f'crawl = \'{w}\'' for w in self.crawls) + ')'
 
-        query = f"""CREATE TABLE urls_merged_cc AS
+        query = f"""CREATE TABLE urls_merged_cc_all_langs AS
         SELECT url,
                url_host_name,
                url_host_registered_domain,
@@ -254,6 +258,19 @@ class Athena_lookup():
           AND {self.ccindex_table_name}.url_host_registered_domain = url_list.websiteaddress
         {limit}"""
         self.execute_query(query)
+
+    def filter_lang(self):
+        if self.filter_lang:
+            query = f"""CREATE TABLE urls_merged_cc AS
+            SELECT *
+            FROM urls_merged_cc_all_langs
+            WHERE content_languages LIKE '%{self.filter_lang}%''""" # OR url like '%/en/%
+            self.execute_query(query)
+        else:
+            query = f"""CREATE TABLE urls_merged_cc AS
+            SELECT *
+            FROM urls_merged_cc_all_langs"""
+            self.execute_query(query)
 
     def select_subpages(self):
         # shortest subpages
@@ -386,6 +403,7 @@ class Athena_lookup():
             self.create_ccindex_table()
             self.repair_ccindex_table()
         self.inner_join()
+        self.filter_lang()
         self.select_subpages()
         self.sort_download_table_by_tld()
         self.partition_download_table()

@@ -20,13 +20,14 @@ class AWSBatch:
         memory (int): Amount of memory to use per container. Possible values: 512, 1024, 2048, 4096.
     """
     def __init__(self, req_batches, batch_size, batches_per_partition, output_bucket, result_output_path,
-                image_name, aws_role, retry_attempts=3, attempt_duration=1800,
+                image_name, aws_role, link_page_processing_func, retry_attempts=3, attempt_duration=1800,
                 keep_compute_env_job_queue=False, batch_env_name='cc', vcpus=0.25, memory=512):
         self.req_batches = req_batches
         self.batch_size = batch_size
         self.batches_per_partition = batches_per_partition
         self.output_bucket = output_bucket
         self.result_output_path = result_output_path
+        self.link_page_processing_func = link_page_processing_func
         self.aws_role = aws_role
         self.retry_attempts = retry_attempts
         self.image_name = image_name
@@ -76,7 +77,8 @@ class AWSBatch:
                                           "cc-download.py", f"--batch_size={self.batch_size}",
                                           f"--batches_per_partition={self.batches_per_partition}",
                                           f"--output_bucket={self.output_bucket}",
-                                          f"--result_output_path={self.result_output_path}", ],
+                                          f"--result_output_path={self.result_output_path}",
+                                          f"--link_page_processing_func={self.link_page_processing_func}}"],
                                     'jobRoleArn': self.aws_role,
                                     'executionRoleArn': self.aws_role,
                                     'networkConfiguration': {'assignPublicIp': 'ENABLED', }},

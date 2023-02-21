@@ -5,3 +5,4 @@ s3fs
 awswrangler~=2.17.0
 tqdm
 pyyaml
+beautifulsoup4
