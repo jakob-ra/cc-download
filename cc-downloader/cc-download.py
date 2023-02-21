@@ -35,10 +35,10 @@ if __name__ == "__main__":
     parser.add_argument("--batches_per_partition", type=int, required=True)
     parser.add_argument("--output_bucket", type=str, required=True)
     parser.add_argument("--result_output_path", type=str, required=True)
-    parser.add_argument("--link_page_processing_func", type=str, required=True)
+    parser.add_argument("--page_processing_func_path", type=str, required=True)
     args = parser.parse_args()
 
-    urllib.request.urlretrieve(link_page_processing_func, "process_page_script.py")
+    urllib.request.urlretrieve(args.page_processing_func_path, "process_page_script.py")
     from process_page_script import process_page
 
     if "AWS_BATCH_JOB_ARRAY_INDEX" in os.environ:
