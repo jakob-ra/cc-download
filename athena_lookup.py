@@ -42,7 +42,7 @@ class Athena_lookup():
     Athena_lookup object
     """
     def __init__(self, aws_params: dict, s3path_url_list, crawls: list, n_subpages: int, url_keywords: list,
-                 filter_lang: Union[str, None] = None, limit_pages_url_keywords=100,
+                 filter_lang: str | None = None, limit_pages_url_keywords=100,
                  athena_price_per_tb=5, wait_seconds=3600, limit_cc_table=10000, keep_ccindex=False):
         self.athena_client = boto3.client('athena')
         self.s3_client = boto3.client('s3')

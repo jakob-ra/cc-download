@@ -17,12 +17,12 @@ result_output_path: 'resout' # path in output_bucket to store the downloads in b
 ## download settings
 crawls: # crawls to include (can be multiple), for list see https://commoncrawl.org/the-data/get-started/
   - 'CC-MAIN-2019-39'
-n_subpages_per_domain: 100 # maximum number of subpages to download per domain (downloads the n_subpages_per_domain subpages with the shortest url)
-limit_pages_url_keywords: 100 # maximum number of subpages containing a keyword from the url keyword list to download per domain
+n_subpages_per_domain: 10 # maximum number of subpages to download per domain (downloads the n_subpages_per_domain subpages with the shortest url)
+limit_pages_url_keywords: 10 # maximum number of subpages containing a keyword from the url keyword list to download per domain
 filter_lang: 'eng' # filter for language (iso 639-3 code) of the subpages to download, specify None if not needed
 
 ## batch settings
-image_name: 'public.ecr.aws/cc-download/cc-download-kieran:latest' # docker image to use for the batch job
+image_name: 'public.ecr.aws/cc-download/cc-download:latest' # docker image to use for the batch job
 batch_size: 1000 # number of subpages to download per batch
 retry_attempts: 1 # number of times to retry a failed download batch
 attempt_duration: 4000 # duration in seconds to wait before retrying to download a batch
