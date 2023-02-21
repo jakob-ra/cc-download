@@ -7,7 +7,7 @@ batch_role: 'arn:aws:iam::425352751544:role/cc-download' # role to use for the b
 ## input paths
 s3path_url_list: 's3://cc-download-test/url_list' # path to s3 FOLDER where url list is stored, starts with 's3://'
 url_keywords_path: 'url_keywords.csv' # path to FILE with url keywords (downloads subpages with these keywords in the url), specify None if not needed
-page_processing_func_path: '
+page_processing_func_path: 'https://github.com/jakob-ra/cc-download/raw/main/cc-downloader/process_page.py' # path to FILE with page processing function, specify None if not needed
 
 ## output paths
 output_bucket: 'cc-download-test' # bucket to store the results
