@@ -78,7 +78,7 @@ class AWSBatch:
                                           f"--batches_per_partition={self.batches_per_partition}",
                                           f"--output_bucket={self.output_bucket}",
                                           f"--result_output_path={self.result_output_path}",
-                                          f"--link_page_processing_func={self.page_processing_func_path}"],
+                                          f"--page_processing_func_path={self.page_processing_func_path}"],
                                     'jobRoleArn': self.aws_role,
                                     'executionRoleArn': self.aws_role,
                                     'networkConfiguration': {'assignPublicIp': 'ENABLED', }},

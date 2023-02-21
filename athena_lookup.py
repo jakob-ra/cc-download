@@ -41,8 +41,8 @@ class Athena_lookup():
     -------
     Athena_lookup object
     """
-    def __init__(self, aws_params: dict, s3path_url_list, crawls: list, n_subpages: int, url_keywords: list,
-                 filter_lang: str | None = None, limit_pages_url_keywords=100,
+    def __init__(self, aws_params: dict, s3path_url_list, crawls: list, n_subpages: int,
+                 filter_lang: str | None = None, url_keywords: list | None = None, limit_pages_url_keywords=100,
                  athena_price_per_tb=5, wait_seconds=3600, limit_cc_table=10000, keep_ccindex=False):
         self.athena_client = boto3.client('athena')
         self.s3_client = boto3.client('s3')
@@ -60,7 +60,6 @@ class Athena_lookup():
         self.ccindex_table_name = 'ccindex'
         self.keep_ccindex = keep_ccindex
         self.limit_pages_url_keywords = limit_pages_url_keywords
-
 
     @staticmethod
     def get_var_char_values(d):
@@ -175,6 +174,8 @@ class Athena_lookup():
         self.execute_query(query)
         query = f"""DROP TABLE IF EXISTS urls_merged_cc_to_download_unsorted;"""
         self.execute_query(query)
+        query = f"""DROP TABLE IF EXISTS urls_merged_cc_to_download;"""
+        self.execute_query(query)
         query = f"""DROP TABLE IF EXISTS urls_merged_cc_to_download_unpartitioned;"""
         self.execute_query(query)
         query = f"""DROP TABLE IF EXISTS urls_merged_cc_to_download;"""
@@ -259,13 +260,15 @@ class Athena_lookup():
           AND {self.ccindex_table_name}.url_host_registered_domain = url_list.websiteaddress
         {limit}"""
         self.execute_query(query)
+        self.output_columns = """url, url_host_name, url_host_registered_domain, url_host_tld, fetch_time, 
+        warc_filename, warc_record_offset, warc_record_end, crawl, content_languages"""
 
     def select_lang(self):
         if self.filter_lang:
             query = f"""CREATE TABLE urls_merged_cc AS
             SELECT *
             FROM urls_merged_cc_all_langs
-            WHERE content_languages LIKE '%{self.filter_lang}%''""" # OR url like '%/en/%
+            WHERE content_languages LIKE '%{self.filter_lang}%'""" # OR url like '%/en/%
             self.execute_query(query)
         else:
             query = f"""CREATE TABLE urls_merged_cc AS
@@ -276,90 +279,57 @@ class Athena_lookup():
     def select_subpages(self):
         # shortest subpages
         if self.n_subpages:
-            shortest_subpages_query = f"""(
-                            select url,
-                            url_host_name,
-                            url_host_registered_domain,
-                            url_host_tld,
-                            fetch_time,
-                            warc_filename,
-                            warc_record_offset,
-                            warc_record_end,
-                            crawl,
-                            row_number() over (partition by url_host_name order by length(url) asc) as subpage_rank 
-                            from urls_merged_cc) ranks
-                        where subpage_rank <= {self.n_subpages}"""
+            shortest_subpages_query = f"""select {self.output_columns}
+                            from (SELECT urls_merged_cc.*, 
+                                row_number() over(partition by url_host_registered_domain order by length(url) asc) as subpage_rank
+                                from urls_merged_cc)
+                            where subpage_rank <= {self.n_subpages}"""
 
         # subpages with URLs containing keywords
         if self.url_keywords:
-            keyword_subpages_query = f"""(SELECT url,
-                                url_host_name,
-                                url_host_registered_domain,
-                                url_host_tld,
-                                fetch_time,
-                                warc_filename,
-                                warc_record_offset,
-                                warc_record_end,
-                                crawl
-                                FROM urls_merged_cc
-                        WHERE """ + ' OR '.join([f"url LIKE '%{keyword}%'" for keyword in self.url_keywords])
+            keyword_subpages_query = f"""select {self.output_columns} from (SELECT {self.output_columns},
+                                row_number() over(partition by url_host_registered_domain order by length(url) asc) as subpage_rank
+                                from (SELECT {self.output_columns}
+                                from urls_merged_cc
+                        WHERE """ + ' OR '.join([f"url LIKE '%{keyword}%'" for keyword in self.url_keywords]) + ')) as u'
             if self.limit_pages_url_keywords:
-                keyword_subpages_query +=  f' LIMIT {self.limit_pages_url_keywords})'
-            else:
-                keyword_subpages_query += ')'
+                keyword_subpages_query +=  f' WHERE subpage_rank <= {self.limit_pages_url_keywords}'
 
         # form query
         if self.n_subpages and self.url_keywords:
             query = f"""CREATE TABLE urls_merged_cc_to_download_unsorted AS
-            SELECT url,
-            url_host_name,
-            url_host_registered_domain,
-            url_host_tld,
-            fetch_time,
-            warc_filename,
-            warc_record_offset,
-            warc_record_end,
-            crawl
-            FROM {shortest_subpages_query} 
+            ({shortest_subpages_query})
             UNION 
-            {keyword_subpages_query}"""
+            ({keyword_subpages_query})"""
         elif self.n_subpages:
             query = f"""CREATE TABLE urls_merged_cc_to_download_unsorted AS
-            SELECT url,
-            url_host_name,
-            url_host_registered_domain,
-            url_host_tld,
-            fetch_time,
-            warc_filename,
-            warc_record_offset,
-            warc_record_end,
-            crawl 
-            FROM {shortest_subpages_query}"""
+            SELECT {self.output_columns}
+            FROM ({shortest_subpages_query})"""
         elif self.url_keywords:
             query = f"""CREATE TABLE urls_merged_cc_to_download_unsorted AS
-            SELECT * FROM {keyword_subpages_query}"""
+            SELECT * FROM ({keyword_subpages_query})"""
         else:
             query = f"""CREATE TABLE urls_merged_cc_to_download_unsorted AS
             SELECT * FROM urls_merged_cc"""
 
         self.execute_query(query)
 
-    def sort_download_table_by_tld(self):
-        """ Sorts the the download table by Top Level Domain (TLD) to make it more likely that all subpages
-        in a batch are using the same language (hence need to download fewer language models). Keeps the
-        crawl order intact."""
-        query = f"""CREATE TABLE urls_merged_cc_to_download_unpartitioned AS
-        SELECT * FROM urls_merged_cc_to_download_unsorted
-        ORDER BY crawl, url_host_tld, fetch_time"""
-
-        self.execute_query(query)
+    # def sort_download_table_by_tld(self):
+    #     """ Sorts the the download table by Top Level Domain (TLD) to make it more likely that all subpages
+    #     in a batch are using the same language (hence need to download fewer language models). Keeps the
+    #     crawl order intact."""
+    #     query = f"""CREATE TABLE urls_merged_cc_to_download_unpartitioned AS
+    #     SELECT * FROM urls_merged_cc_to_download_unsorted
+    #     ORDER BY crawl, url_host_tld, fetch_time"""
+    #
+    #     self.execute_query(query)
 
     def partition_download_table(self):
         """Partitions the download table into 100 partitions (this is the maximum and makes querying the table faster)"""
         query = f"""CREATE TABLE urls_merged_cc_to_download
         WITH (partitioned_by = ARRAY['partition']) AS
-        SELECT urls_merged_cc_to_download_unpartitioned.*, ntile(100) over (order by null) as partition
-        from urls_merged_cc_to_download_unpartitioned;"""
+        SELECT urls_merged_cc_to_download_unsorted.*, ntile(100) over (order by null) as partition
+        from urls_merged_cc_to_download_unsorted;"""
 
         self.execute_query(query)
 
@@ -406,10 +376,10 @@ class Athena_lookup():
         self.inner_join()
         self.select_lang()
         self.select_subpages()
-        self.sort_download_table_by_tld()
+        # self.sort_download_table_by_tld()
         self.partition_download_table()
         self.get_length_download_table()
         # self.save_table_as_csv()
         print(f'The results contain {self.download_table_length:,} subpages from {self.n_unique_hosts:,}'
               f' unique hostnames.')
-        print(f'Matched {self.n_unique_hosts/self.input_table_length:2f} of the input domains to at least one subpage.')
+        print(f'Matched {self.n_unique_hosts/self.input_table_length*100:.1f}% of the input domains to at least one subpage.')

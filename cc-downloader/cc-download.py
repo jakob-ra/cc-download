@@ -38,7 +38,7 @@ if __name__ == "__main__":
     parser.add_argument("--page_processing_func_path", type=str, required=True)
     args = parser.parse_args()
 
-    urllib.request.urlretrieve(argspage_processing_func_path, "process_page_script.py")
+    urllib.request.urlretrieve(args.page_processing_func_path, "process_page_script.py")
     from process_page_script import process_page
 
     if "AWS_BATCH_JOB_ARRAY_INDEX" in os.environ:

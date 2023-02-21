@@ -23,13 +23,17 @@ if __name__ == '__main__':
         'bucket': cfg['output_bucket'],
         'path': cfg['index_output_path'],
     }
-    url_keywords = pd.read_csv(cfg['url_keywords_path'], header=None, usecols=[0]).squeeze().tolist()
+    if cfg['url_keywords_path']:
+        url_keywords = pd.read_csv(cfg['url_keywords_path'], header=None, usecols=[0]).squeeze().tolist()
+        cfg['url_keywords_path'] = url_keywords
 
     answer = input(f'Estimated lookup costs: {0.2*len(cfg["crawls"]):.2f}$-{0.5*len(cfg["crawls"]):.2f} $. Continue? [y]/[n]').lower()
     if answer == 'y':
         athena_lookup = Athena_lookup(aws_params, cfg['s3path_url_list'], cfg['crawls'],
-                                      cfg['n_subpages_per_domain'], url_keywords, limit_cc_table=None,
-                                      keep_ccindex=False, limit_pages_url_keywords=cfg['limit_pages_url_keywords'])
+                                      cfg['n_subpages_per_domain'], url_keywords=cfg['url_keywords_path'],
+                                      filter_lang=cfg['filter_lang'], limit_cc_table=None,
+                                      keep_ccindex=False,
+                                      limit_pages_url_keywords=cfg['limit_pages_url_keywords'])
         athena_lookup.run_lookup()
     else:
         raise Exception('Lookup aborted.')
