@@ -251,7 +251,8 @@ class Athena_lookup():
                warc_record_offset,
                warc_record_offset + warc_record_length - 1 as warc_record_end,
                crawl,
-               subset
+               subset,
+               content_languages
         FROM {self.ccindex_table_name}, url_list
         WHERE {crawls}
           AND subset = 'warc'
@@ -259,7 +260,7 @@ class Athena_lookup():
         {limit}"""
         self.execute_query(query)
 
-    def filter_lang(self):
+    def select_lang(self):
         if self.filter_lang:
             query = f"""CREATE TABLE urls_merged_cc AS
             SELECT *
@@ -403,7 +404,7 @@ class Athena_lookup():
             self.create_ccindex_table()
             self.repair_ccindex_table()
         self.inner_join()
-        self.filter_lang()
+        self.select_lang()
         self.select_subpages()
         self.sort_download_table_by_tld()
         self.partition_download_table()
