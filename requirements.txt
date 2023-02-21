@@ -1,0 +1,7 @@
+boto3~=1.24.90
+pandas~=1.5.0
+warcio~=1.7.4
+s3fs
+awswrangler~=2.17.0
+tqdm
+pyyaml
