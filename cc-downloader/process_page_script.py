@@ -1,12 +1,13 @@
 from bs4 import BeautifulSoup, SoupStrainer
+import pandas as pd
 
-keywords = ['corona']
+keywords = pd.read_csv('https://github.com/jakob-ra/cc-download-translate/raw/main/keywords.csv').squeeze().tolist()
 
 class PageProcessor:
     """Class for processing HTML pages"""
     def __init__(self, page, keywords=None):
         self.page = page
-        self.keywords = ['corona']
+        self.keywords = keywords
         self.soup = BeautifulSoup(self.page, 'html.parser', parse_only=SoupStrainer(['p', 'a']))
 
     def extract_texts(self):
@@ -32,23 +33,23 @@ class PageProcessor:
         """Extract all links from HTML page"""
         # get all text
         links = [link.get('href') for link in self.soup.find_all('a') if link.get('href') is not None]
-        links = [link.strip() for link in links if link.startswith('http')]
+        links = [link for link in links if link.startswith('http')]
         # links = [link for link in links if not link.startswith(root_url)] # to get non-local links
 
         self.links = links
         return links
 
-def process_page(page, keywords=keywords):
+def process_page(page, keywords=['covid', 'corona']):
     """Process HTML page, return relevant paragraphs and non-local links"""
     processor = PageProcessor(page, keywords=keywords)
     processor.extract_texts()
     processor.get_keyword_mentioning_texts()
-    # processor.extract_links()
+    processor.extract_links()
 
-    return processor.keyword_mentioning_texts #, processor.links
+    return processor.keyword_mentioning_texts, processor.links
 
 # # test on https://www.siemens.com/global/en.html
-import requests
-keywords = ['corona']
-page = requests.get('https://www.siemens.com/global/en.html').content
-process_page(page, keywords=keywords)
+# import requests
+# keywords = ['Investor', 'Software']
+# page = requests.get('https://www.siemens.com/global/en.html').content
+# process_page(page, keywords=keywords)

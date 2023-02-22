@@ -6,7 +6,6 @@ import os
 import argparse
 import awswrangler as wr
 from utils import exponential_backoff
-import urllib.request
 
 def fetch_process_warc_records(row, s3client, page_process_func):
     """Fetch all WARC records defined by filenames and offsets in batch,
@@ -21,17 +20,11 @@ def fetch_process_warc_records(row, s3client, page_process_func):
 
     record_stream = BytesIO(response["Body"].read())
 
-    extracts = []
-    
-    for record in ArchiveIterator(record_stream):
+    for record in ArchiveIterator(record_stream): # there is only one record in the byte stream
         if record.rec_type == 'response':
             page = record.content_stream().read()
-            extracts += [page_process_func(page)]
+            return page_process_func(page)
 
-    # remove duplicates
-    extracts = list(dict.fromkeys(extracts))
-
-    return extracts
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -39,10 +32,11 @@ if __name__ == "__main__":
     parser.add_argument("--batches_per_partition", type=int, required=True)
     parser.add_argument("--output_bucket", type=str, required=True)
     parser.add_argument("--result_output_path", type=str, required=True)
-    parser.add_argument("--page_processing_func_path", type=str, required=True)
     args = parser.parse_args()
 
-    urllib.request.urlretrieve(args.page_processing_func_path, "process_page_script.py")
+    # download processing script from s3
+    s3 = boto3.resource('s3')
+    s3.Bucket(args.output_bucket).download_file('scripts/process_page.py', 'process_page_script.py')
     from process_page_script import process_page
 
     if "AWS_BATCH_JOB_ARRAY_INDEX" in os.environ:
@@ -74,16 +68,16 @@ if __name__ == "__main__":
     start = time.process_time()
     df['result'] = df.apply(lambda row: fetch_process_warc_records(row, s3client, process_page), axis=1)
     # if returned result is tuple or list, split into multiple columns
-    if type(df['result'].iloc[0][0]) in [tuple, list]:
+    if type(df['result'].iloc[0]) in [tuple, list]:
         print('Splitting result into multiple columns...')
-        result_len = len(df['result'].iloc[0][0])
+        result_len = len(df['result'].iloc[0])
         for i in range(result_len):
-            df[f'result_{i}'] = df['result'].apply(lambda x: [res[i] for res in x])
+            df[f'result_{i}'] = df['result'].apply(lambda x: x[i])
         df.drop(columns=['result'], inplace=True)
     print(f'Success! Finished downloading and processing in {time.process_time() - start} seconds.')
 
     # drop offsets
-    df.drop(columns=['warc_filename', 'warc_record_offset', 'warc_record_end'], inplace=True)
+    df.drop(columns=['warc_filename', 'warc_record_offset', 'warc_record_end', 'partition'], inplace=True)
 
     # save to S3
     s3_path = f's3://{args.output_bucket}/{args.result_output_path}/batch_n_{batch_n}.csv'

@@ -3,6 +3,8 @@ import pandas as pd
 from aws_config import aws_configure_credentials
 from aws_batch import AWSBatch
 import yaml
+import boto3
+import re
 
 if __name__ == '__main__':
     ## read config file
@@ -13,6 +15,18 @@ if __name__ == '__main__':
     aws_configure_credentials(cfg['credentials_csv_filepath'], cfg['region'], cfg['profile_name'])
 
     # available_crawls = pd.read_csv('common-crawls.txt')
+
+    ## hardcode keywords into process_page.py
+    keywords = pd.read_csv(cfg["keywords_path"], header=None)[0].tolist() if cfg["keywords_path"] else None
+    with open('process_page.py', 'r') as f:
+        filedata = f.read()
+    filedata = re.sub(r'keywords = (.+)\n', f'keywords = {keywords}\n', filedata)
+    with open('process_page.py', 'w') as f:
+        f.write(filedata)
+
+    ## upload process_page.py to s3 to be used by batch jobs
+    s3 = boto3.client('s3')
+    s3.upload_file('process_page.py', cfg['output_bucket'], 'scripts/process_page.py')
 
     ## run athena lookup
     result_output_path = cfg['result_output_path'] + '/' + '_'.join(cfg['crawls']) # path in output_bucket to store the downloads in batches
@@ -47,7 +61,7 @@ if __name__ == '__main__':
     if answer == 'y':
         aws_batch = AWSBatch(req_batches, cfg["batch_size"], batches_per_partition, cfg['output_bucket'],
                              result_output_path, cfg['image_name'], cfg['batch_role'],
-                             cfg['page_processing_func_path'], retry_attempts=cfg['retry_attempts'],
+                             retry_attempts=cfg['retry_attempts'],
                              attempt_duration=cfg['attempt_duration'], keep_compute_env_job_queue=False,
                              vcpus=cfg['vcpus'], memory=cfg['memory'])
         aws_batch.run()
