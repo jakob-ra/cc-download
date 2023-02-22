@@ -6,7 +6,7 @@ batch_role: 'arn:aws:iam::425352751544:role/cc-download' # role to use for the b
 
 ## input paths
 s3path_url_list: 's3://cc-download-test/url-list' # path to s3 FOLDER where url list is stored, starts with 's3://'
-url_keywords_path: null # 'url_keywords.csv' # path to FILE with url keywords (downloads subpages with these keywords in the url), specify null if not needed
+url_keywords_path: null # 'url_keywords.csv' # path to FILE with url keywords (downloads subpages with these keywords in the url), set to null if not needed
 page_processing_func_path: 'https://www.dropbox.com/s/7jaq0w5e8t8jxot/process_page.py?dl=1' # path to FILE with page processing function
 ## output paths
 output_bucket: 'cc-download-test' # bucket to store the results
@@ -16,13 +16,13 @@ result_output_path: 'resout' # path in output_bucket to store the downloads in b
 ## download settings
 crawls: # crawls to include (can be multiple), for list see https://commoncrawl.org/the-data/get-started/
   - 'CC-MAIN-2019-39'
-n_subpages_per_domain: 10 # maximum number of subpages to download per domain (downloads the n_subpages_per_domain subpages with the shortest url)
-limit_pages_url_keywords: 10 # maximum number of subpages containing a keyword from the url keyword list to download per domain
-filter_lang: 'eng' # filter for language (iso 639-3 code) of the subpages to download, specify null if not needed
+n_subpages_per_domain: 0 # maximum number of subpages to download per domain (downloads the n_subpages_per_domain subpages with the shortest url). Set to 0 if only subpages containing a keyword from the url keyword list should be downloaded. Set to null if all subpages should be downloaded.
+limit_pages_url_keywords: 100 # maximum number of subpages containing a keyword from the url keyword list to download per domain
+filter_lang: 'eng' # filter for language (iso 639-3 code) of the subpages to download, set to null if not needed
 
 ## batch settings
 image_name: 'public.ecr.aws/cc-download/cc-download:latest' # docker image to use for the batch job
-batch_size: 1000 # number of subpages to download per batch
+batch_size: 2000 # number of subpages to download per batch
 retry_attempts: 1 # number of times to retry a failed download batch
 attempt_duration: 4000 # duration in seconds to wait before retrying to download a batch
 vcpus: 0.25 # number of vcpus per container, possible values: 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256

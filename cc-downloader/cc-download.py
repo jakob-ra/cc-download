@@ -24,8 +24,12 @@ def fetch_process_warc_records(row, s3client, page_process_func):
     extracts = []
     
     for record in ArchiveIterator(record_stream):
-        page = record.content_stream().read()
-        extracts += [page_process_func(page)]
+        if record.rec_type == 'response':
+            page = record.content_stream().read()
+            extracts += [page_process_func(page)]
+
+    # remove duplicates
+    extracts = list(dict.fromkeys(extracts))
 
     return extracts
 
@@ -56,7 +60,7 @@ if __name__ == "__main__":
 
     # read cc-index table with warc filenames and byte positions
     partition_n = batch_n//args.batches_per_partition + 1
-    batch_n_within_partition = batch_n%args.batches_per_partition
+    batch_n_within_partition = batch_n % args.batches_per_partition
     query = f'SELECT * FROM urls_merged_cc_to_download WHERE partition={partition_n} ORDER BY crawl, url_host_tld, fetch_time OFFSET {batch_n_within_partition*args.batch_size} LIMIT {args.batch_size}'
 
     df = exponential_backoff(wr.athena.read_sql_query, sql=query, database='ccindex', boto3_session=session)
@@ -68,7 +72,14 @@ if __name__ == "__main__":
    # download paragraphs and fill into new column
     print('Starting download...')
     start = time.process_time()
-    df['paragraphs'] = df.apply(lambda row: fetch_process_warc_records(row, s3client, process_page), axis=1)
+    df['result'] = df.apply(lambda row: fetch_process_warc_records(row, s3client, process_page), axis=1)
+    # if returned result is tuple or list, split into multiple columns
+    if type(df['result'].iloc[0][0]) in [tuple, list]:
+        print('Splitting result into multiple columns...')
+        result_len = len(df['result'].iloc[0][0])
+        for i in range(result_len):
+            df[f'result_{i}'] = df['result'].apply(lambda x: [res[i] for res in x])
+        df.drop(columns=['result'], inplace=True)
     print(f'Success! Finished downloading and processing in {time.process_time() - start} seconds.')
 
     # drop offsets
