@@ -1,12 +1,12 @@
 from bs4 import BeautifulSoup, SoupStrainer
 
-keywords = ['corona']
+keywords = ['corona', 'covid', 'pandemic', 'epidemic', 'virus', 'hygiene', 'lockdown', 'quarantine', 'outbreak', 'vaccine', 'health', 'office', 'remote']
 
 class PageProcessor:
     """Class for processing HTML pages"""
     def __init__(self, page, keywords=None):
         self.page = page
-        self.keywords = ['corona']
+        self.keywords = ['corona', 'covid', 'pandemic', 'epidemic', 'virus', 'hygiene', 'lockdown', 'quarantine', 'outbreak', 'vaccine', 'health', 'office', 'remote']
         self.soup = BeautifulSoup(self.page, 'html.parser', parse_only=SoupStrainer(['p', 'a']))
 
     def extract_texts(self):
@@ -49,6 +49,6 @@ def process_page(page, keywords=keywords):
 
 # # test on https://www.siemens.com/global/en.html
 import requests
-keywords = ['corona']
+keywords = ['corona', 'covid', 'pandemic', 'epidemic', 'virus', 'hygiene', 'lockdown', 'quarantine', 'outbreak', 'vaccine', 'health', 'office', 'remote']
 page = requests.get('https://www.siemens.com/global/en.html').content
 process_page(page, keywords=keywords)

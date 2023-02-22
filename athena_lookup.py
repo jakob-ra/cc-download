@@ -268,7 +268,7 @@ class Athena_lookup():
             query = f"""CREATE TABLE urls_merged_cc AS
             SELECT *
             FROM urls_merged_cc_all_langs
-            WHERE content_languages = {self.filter_lang} OR url like '%/en/%""" # use LIKE '%{self.filter_lang}%' for pages in filter_lang and other languages
+            WHERE content_languages = '{self.filter_lang}' OR url like '%/en/%'""" # use LIKE '%{self.filter_lang}%' for pages in filter_lang and other languages
             self.execute_query(query)
         else:
             query = f"""CREATE TABLE urls_merged_cc AS
