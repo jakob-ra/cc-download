@@ -17,7 +17,7 @@ result_output_path: 'resout' # path in output_bucket to store the downloads in b
 ## download settings
 crawls: # crawls to include (can be multiple), for list see https://commoncrawl.org/the-data/get-started/
   - 'CC-MAIN-2020-34'
-n_subpages_per_domain: 0 # maximum number of subpages to download per domain (downloads the n_subpages_per_domain subpages with the shortest url). Set to 0 if only subpages containing a keyword from the url keyword list should be downloaded. Set to null if all subpages should be downloaded.
+n_subpages_per_domain: 100 # maximum number of subpages to download per domain (downloads the n_subpages_per_domain subpages with the shortest url). Set to 0 if only subpages containing a keyword from the url keyword list should be downloaded. Set to null if all subpages should be downloaded.
 limit_pages_url_keywords: 100 # maximum number of subpages containing a keyword from the url keyword list to download per domain
 filter_lang: 'eng' # filter for language (iso 639-3 code) of the subpages to download, set to null if not needed
 
