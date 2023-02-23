@@ -78,12 +78,12 @@ if __name__ == "__main__":
     print(f'Success! Finished downloading and processing in {time.process_time() - start} seconds.')
 
     # drop offsets
-    df.drop(columns=['warc_filename', 'warc_record_offset', 'warc_record_end', 'partition'], inplace=True)
+    df.drop(columns=['warc_filename', 'warc_record_offset', 'warc_record_end'], inplace=True)
 
     # drop rows with empty results
     df = df[df['result'].str.len() > 0]
 
     # save to S3
     s3_path = f's3://{args.output_bucket}/{args.result_output_path}/batch_n_{batch_n}.parquet'
-    wr.s3.to_parquet(df=df, path=s3path, index=False, compression='gzip')
+    wr.s3.to_parquet(df=df, path=s3_path, index=False, compression='gzip')
     print(f'Results saved to: {s3_path}')

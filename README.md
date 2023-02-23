@@ -152,7 +152,8 @@ download.
 CommonCrawl [runs language detection](https://commoncrawl.org/2018/08/august-2018-crawl-archive-now-available/) on all
 crawls from August 2018. Also, subpages having the language code inside their URL (e.g.
 apple.com/en-us/iphone-14/switch/) will be downloaded. To-do: Go from iso 639-3 to iso 639-1, as well as to all regional
-codes (e.g. 'en-us').
+codes (e.g. 'en-us'). Implement strict (i.e. sites with content only in specified language) and loose (i.e. sites with
+content in specified language and other languages) language filtering.
 
 ### Providing a custom processing function
 
