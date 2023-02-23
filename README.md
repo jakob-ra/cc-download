@@ -145,6 +145,15 @@ have two ways of selecting a subset of subpages per domain:
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+### Filtering subpages by language
+
+You can filter the subpages you want to download by content language (iso 639-3 code, e.g. 'eng') of the subpages to
+download.
+CommonCrawl [runs language detection](https://commoncrawl.org/2018/08/august-2018-crawl-archive-now-available/) on all
+crawls from August 2018. Also, subpages having the language code inside their URL (e.g.
+apple.com/en-us/iphone-14/switch/) will be downloaded. To-do: Go from iso 639-3 to iso 639-1, as well as to all regional
+codes (e.g. 'en-us').
+
 ### Providing a custom processing function
 
 If you want to process the downloaded subpages in a custom way, you can alter process_page.py to meet your requirements.
