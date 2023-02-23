@@ -174,7 +174,9 @@ class Athena_lookup():
         self.execute_query(query)
         query = f"""DROP TABLE IF EXISTS urls_merged_cc_to_download_unsorted;"""
         self.execute_query(query)
-        query = f"""DROP TABLE IF EXISTS urls_merged_cc_to_download;"""
+        query = f"""DROP TABLE IF EXISTS urls_merged_cc_to_download_sorted;"""
+        self.execute_query(query)
+        query = f"""DROP TABLE IF EXISTS urls_merged_cc_to_download_deduplicated;"""
         self.execute_query(query)
         query = f"""DROP TABLE IF EXISTS urls_merged_cc_to_download_unpartitioned;"""
         self.execute_query(query)
@@ -324,12 +326,26 @@ class Athena_lookup():
     #
     #     self.execute_query(query)
 
+    def deduplicate_download_table(self):
+        """CommonCrawl sometimes crawls the same URL multiple times because of redirects. This removes
+        duplicate URLs from the download table, keeping only the one with the largest payload size,
+        i.e. the most content. """
+        query = f"""create table urls_merged_cc_to_download_deduplicated as
+                    select {self.output_columns}
+                    from
+                    (select urls_merged_cc_to_download_unsorted.*, 
+                    row_number() over(partition by (url, crawl) order by (warc_record_offset - warc_record_end) desc) as rn
+                    from urls_merged_cc_to_download_unsorted) as u
+                    where rn=1"""
+
+        self.execute_query(query)
+
     def partition_download_table(self):
         """Partitions the download table into 100 partitions (this is the maximum and makes querying the table faster)"""
         query = f"""CREATE TABLE urls_merged_cc_to_download
         WITH (partitioned_by = ARRAY['partition']) AS
-        SELECT urls_merged_cc_to_download_unsorted.*, ntile(100) over (order by null) as partition
-        from urls_merged_cc_to_download_unsorted;"""
+        SELECT urls_merged_cc_to_download_deduplicated.*, ntile(100) over (order by null) as partition
+        from urls_merged_cc_to_download_deduplicated;"""
 
         self.execute_query(query)
 
@@ -377,6 +393,7 @@ class Athena_lookup():
         self.select_lang()
         self.select_subpages()
         # self.sort_download_table_by_tld()
+        self.deduplicate_download_table()
         self.partition_download_table()
         self.get_length_download_table()
         # self.save_table_as_csv()

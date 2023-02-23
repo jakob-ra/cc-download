@@ -63,12 +63,13 @@ if __name__ == "__main__":
     # initialize s3
     s3client = boto3.client('s3', region_name='us-east-1', use_ssl=False)
 
+
    # download paragraphs and fill into new column
     print('Starting download...')
     start = time.process_time()
     df['result'] = df.apply(lambda row: fetch_process_warc_records(row, s3client, process_page), axis=1)
-    # if returned result is tuple or list, split into multiple columns
-    if type(df['result'].iloc[0]) in [tuple, list]:
+    # if returned result is tuple, split into multiple columns
+    if type(df['result'].iloc[0]) is tuple:
         print('Splitting result into multiple columns...')
         result_len = len(df['result'].iloc[0])
         for i in range(result_len):
@@ -79,7 +80,10 @@ if __name__ == "__main__":
     # drop offsets
     df.drop(columns=['warc_filename', 'warc_record_offset', 'warc_record_end', 'partition'], inplace=True)
 
+    # drop rows with empty results
+    df = df[df['result'].str.len() > 0]
+
     # save to S3
-    s3_path = f's3://{args.output_bucket}/{args.result_output_path}/batch_n_{batch_n}.csv'
-    df.to_csv(s3_path, index=False)
+    s3_path = f's3://{args.output_bucket}/{args.result_output_path}/batch_n_{batch_n}.parquet'
+    wr.s3.to_parquet(df=df, path=s3path, index=False, compression='gzip')
     print(f'Results saved to: {s3_path}')

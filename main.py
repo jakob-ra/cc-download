@@ -67,3 +67,22 @@ if __name__ == '__main__':
         aws_batch.run()
     else:
         raise Exception('Download batch job aborted.')
+
+    # table_name = 'hyperlinks_res'
+    # res_path = f's3://{cfg["output_bucket"]}/{result_output_path}/'
+    # res_sample = pd.read_csv(res_path + 'batch_n_0.csv', nrows=10)
+    # res_cols = res_sample.columns.tolist()
+    # res_cols = ' string, '.join(res_cols) + ' string'
+    # query = f"""CREATE EXTERNAL TABLE IF NOT EXISTS {table_name}
+    #         ({res_cols})
+    #         ROW FORMAT DELIMITED
+    #         FIELDS TERMINATED BY ','
+    #         LINES TERMINATED BY '\n'
+    #         LOCATION '{res_path}'
+    #         TBLPROPERTIES ('skip.header.line.count'='1')"""
+    # athena_lookup.execute_query(query)
+    #
+    # with open('save_results.py', 'r') as f:
+    #     save_results_script = f.read()
+    #
+    # exec(save_results_script, globals(), {'athena_lookup': athena_lookup, 'table_name': table_name})

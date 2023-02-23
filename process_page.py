@@ -1,13 +1,13 @@
 from bs4 import BeautifulSoup, SoupStrainer
 
-keywords = ['corona', 'covid', 'pandemic', 'epidemic', 'virus', 'hygiene', 'lockdown', 'quarantine', 'outbreak', 'vaccine', 'health', 'office', 'remote']
+keywords = None
 
 class PageProcessor:
     """Class for processing HTML pages"""
     def __init__(self, page, keywords=None):
         self.page = page
-        self.keywords = ['corona', 'covid', 'pandemic', 'epidemic', 'virus', 'hygiene', 'lockdown', 'quarantine', 'outbreak', 'vaccine', 'health', 'office', 'remote']
-        self.soup = BeautifulSoup(self.page, 'html.parser', parse_only=SoupStrainer(['p', 'a']))
+        self.keywords = None
+        self.soup = BeautifulSoup(self.page, 'lxml', parse_only=SoupStrainer(['p', 'a']))
 
     def extract_texts(self):
         """Extract texts from HTML page (takes only texts between <p> tags)"""
@@ -41,14 +41,14 @@ class PageProcessor:
 def process_page(page, keywords=keywords):
     """Process HTML page, return relevant paragraphs and non-local links"""
     processor = PageProcessor(page, keywords=keywords)
-    processor.extract_texts()
-    processor.get_keyword_mentioning_texts()
-    # processor.extract_links()
+    # processor.extract_texts()
+    # processor.get_keyword_mentioning_texts()
+    processor.extract_links()
 
-    return processor.keyword_mentioning_texts #, processor.links
+    return processor.links # processor.keyword_mentioning_texts, processor.links
 
 # # test on https://www.siemens.com/global/en.html
 import requests
-keywords = ['corona', 'covid', 'pandemic', 'epidemic', 'virus', 'hygiene', 'lockdown', 'quarantine', 'outbreak', 'vaccine', 'health', 'office', 'remote']
+keywords = None
 page = requests.get('https://www.siemens.com/global/en.html').content
 process_page(page, keywords=keywords)
