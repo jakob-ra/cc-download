@@ -28,3 +28,6 @@ retry_attempts: 3 # number of times to retry a failed download batch
 attempt_duration: 4000 # duration in seconds to wait before retrying to download a batch
 vcpus: 0.25 # number of vcpus per container, possible values: 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256
 memory: 512 # memory in MB per container, possible values: 512, 1024, 2048, 4096, 8192
+
+## debug settings
+debug: false # set to true to enable debug mode (only downloads 10 subpages per domain), keeps large tables, compute environment, job queue

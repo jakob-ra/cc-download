@@ -11,6 +11,12 @@ if __name__ == '__main__':
     with open("config.yml", "r", encoding='utf8') as ymlfile:
         cfg = yaml.safe_load(ymlfile)
 
+    ## debug settings
+    if cfg['debug']:
+        keep_compute_env_job_queue = True
+        keep_ccindex = True
+        limit_cc_table = 100000
+
     ## authenticate to AWS
     aws_configure_credentials(cfg['credentials_csv_filepath'], cfg['region'], cfg['profile_name'])
 
@@ -57,6 +63,9 @@ if __name__ == '__main__':
     req_batches = int(batches_per_partition*100) # 100 is the number of partitions
     print(f'Splitting {athena_lookup.download_table_length:,} subpages into {req_batches:,} batches of size {cfg["batch_size"]:,}.')
     answer = input(f'Estimated download costs: {0.33*athena_lookup.download_table_length*10**-6:.2f}$. Continue? [y]/[n]').lower()
+
+    if cfg['debug']:
+        req_batches = 2
 
     if answer == 'y':
         aws_batch = AWSBatch(req_batches, cfg["batch_size"], batches_per_partition, cfg['output_bucket'],

@@ -147,11 +147,8 @@ have two ways of selecting a subset of subpages per domain:
 
 ### Providing a custom processing function
 
-If you want to process the downloaded subpages in a custom way, you can provide a custom processing function. The
-function needs to be called process_page and take only one argument, the downloaded page. It should return any data you
-want to save from the page. The function needs to be saved in a .py file: see process_page.py for reference. The path to
-the file needs to be provided under config.yml > custom_processing_function_path. The file needs to be accessible to the instances that run the download jobs, so it
-needs to be on S3, in a public GitHub repository, or on Drive, Dropbox, etc.
+If you want to process the downloaded subpages in a custom way, you can alter process_page.py to meet your requirements.
+The file is uploaded to s3 to have it available to the containers running each job.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
