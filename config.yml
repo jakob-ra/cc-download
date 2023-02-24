@@ -36,4 +36,5 @@ vcpus: 0.25 # number of vcpus per container, possible values: 0.25, 0.5, 1, 2, 4
 memory: 512 # memory in MB per container, possible values: 512, 1024, 2048, 4096, 8192
 
 ## debug settings
-debug: True # set to True to enable debug mode (only downloads 10 subpages per domain), keeps large tables, compute environment, job queue
+debug: False # set to True to enable debug mode (only downloads 10 subpages per domain), keeps large tables, compute environment, job queue
+keep_urls_merged_cc: True # set to True if re-running with the same crawls and input urls, to avoid expensive merging of the input urls with the common crawl index

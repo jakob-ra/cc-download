@@ -43,6 +43,9 @@ class Athena_lookup():
         Limit the number of rows in the ccindex table to keep costs low for debugging
     keep_ccindex : bool
         Keep the ccindex table after querying to speed up future queries
+    keep_urls_merged_cc : bool
+        Avoid the (expensive) step of merging the URLs with the ccindex table if rerunning with the same
+        crawls and URLs
     Returns
     -------
     Athena_lookup object
@@ -51,7 +54,7 @@ class Athena_lookup():
     def __init__(self, aws_params: dict, s3path_url_list, crawls: list, n_subpages: int,
                  url_keywords: list | None = None, limit_pages_url_keywords=100,
                  filter_lang: str | None = None, one_snapshot_per_url=False, athena_price_per_tb=5,
-                 wait_seconds=3600, limit_cc_table=10000, keep_ccindex=False):
+                 wait_seconds=3600, limit_cc_table=10000, keep_ccindex=False, keep_urls_merged_cc=False):
         self.athena_client = boto3.client('athena', region_name='us-east-1')
         self.s3_client = boto3.client('s3')
         self.aws_params = aws_params
@@ -66,8 +69,14 @@ class Athena_lookup():
         self.limit_cc_table = limit_cc_table  # to keep costs low for debugging; this should be None for full table
         self.total_cost = 0
         self.ccindex_table_name = 'ccindex'
-        self.keep_ccindex = keep_ccindex
+        if keep_urls_merged_cc:
+            self.keep_ccindex = True
+        else:
+            self.keep_ccindex = keep_ccindex
         self.limit_pages_url_keywords = limit_pages_url_keywords
+        self.keep_urls_merged_cc = keep_urls_merged_cc
+        self.output_columns = """url, url_host_name, url_host_registered_domain, url_host_tld, fetch_time, 
+        warc_filename, warc_record_offset, warc_record_end, crawl, content_languages"""
 
     @staticmethod
     def get_var_char_values(d):
@@ -176,8 +185,9 @@ class Athena_lookup():
         if not self.keep_ccindex:
             query = f"""DROP TABLE IF EXISTS ccindex;"""
             self.execute_query(query)
-        query = f"""DROP TABLE IF EXISTS urls_merged_cc_all_langs;"""
-        self.execute_query(query)
+        if not self.keep_urls_merged_cc:
+            query = f"""DROP TABLE IF EXISTS urls_merged_cc_all_langs;"""
+            self.execute_query(query)
         query = f"""DROP TABLE IF EXISTS urls_merged_cc;"""
         self.execute_query(query)
         query = f"""DROP TABLE IF EXISTS urls_merged_cc_to_download_unsorted;"""
@@ -270,8 +280,6 @@ class Athena_lookup():
           AND {self.ccindex_table_name}.url_host_registered_domain = url_list.websiteaddress
         {limit}"""
         self.execute_query(query)
-        self.output_columns = """url, url_host_name, url_host_registered_domain, url_host_tld, fetch_time, 
-        warc_filename, warc_record_offset, warc_record_end, crawl, content_languages"""
 
     def select_lang(self):
         if self.filter_lang:
@@ -339,7 +347,7 @@ class Athena_lookup():
         duplicate URLs from the download table, keeping only the one with the largest payload size,
         i.e. the most content. If one_snapshot_per_url=True and a URL is present in multiple crawls,
         keeps only the version with the biggest payload (if tied, use the first crawl). """
-        partition_by = 'crawl' if self.one_snapshot_per_url else '(url, crawl)'
+        partition_by = 'url' if self.one_snapshot_per_url else '(url, crawl)'
         query = f"""create table urls_merged_cc_to_download_deduplicated as
                     select {self.output_columns}
                     from
@@ -399,7 +407,8 @@ class Athena_lookup():
         if not self.keep_ccindex:
             self.create_ccindex_table()
             self.repair_ccindex_table()
-        self.inner_join()
+        if not self.keep_urls_merged_cc:
+            self.inner_join()
         self.select_lang()
         self.select_subpages()
         # self.sort_download_table_by_tld()

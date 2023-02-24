@@ -4,6 +4,7 @@ from aws_config import aws_configure_credentials
 from aws_batch import AWSBatch
 import yaml
 import boto3
+import awswrangler as wr
 
 if __name__ == '__main__':
     ## read config file
@@ -39,13 +40,19 @@ if __name__ == '__main__':
         url_keywords = pd.read_csv(cfg['url_keywords_path'], header=None, usecols=[0]).squeeze().tolist()
         cfg['url_keywords_path'] = url_keywords
 
-    answer = input(f'Estimated lookup costs: {0.2*len(cfg["crawls"]):.2f}$-{0.5*len(cfg["crawls"]):.2f} $. Continue? [y]/[n]').lower()
+    if not (cfg['debug'] or cfg['keep_urls_merged_cc']):
+        answer = input(f'Estimated lookup costs: {0.2*len(cfg["crawls"]):.2f}$-{0.5*len(cfg["crawls"]):.2f} $. Continue? [y]/[n]').lower()
+    else:
+        answer = 'y'
+
     if answer == 'y':
         athena_lookup = Athena_lookup(aws_params, cfg['s3path_url_list'], cfg['crawls'],
                                       cfg['n_subpages_per_domain'], url_keywords=cfg['url_keywords_path'],
-                                      filter_lang=cfg['filter_lang'], limit_cc_table=limit_cc_table,
-                                      keep_ccindex=keep_ccindex,
-                                      limit_pages_url_keywords=cfg['limit_pages_url_keywords'])
+                                      limit_pages_url_keywords=cfg['limit_pages_url_keywords'],
+                                      filter_lang=cfg['filter_lang'],
+                                      one_snapshot_per_url=cfg['one_snapshot_per_url'],
+                                      limit_cc_table=limit_cc_table, keep_ccindex=keep_ccindex,
+                                      keep_urls_merged_cc=cfg['keep_urls_merged_cc'])
         athena_lookup.run_lookup()
     else:
         raise Exception('Lookup aborted.')
@@ -63,7 +70,10 @@ if __name__ == '__main__':
 
     result_output_path = cfg['result_output_path'] + '/' + '_'.join(cfg['crawls']) # path in output_bucket to store the downloads in batches
     print(f'Splitting {athena_lookup.download_table_length:,} subpages into {req_batches:,} batches of size {cfg["batch_size"]:,}.')
-    answer = input(f'Estimated download costs: {0.33*athena_lookup.download_table_length*10**-6:.2f}$. Continue? [y]/[n]').lower()
+    if not cfg['debug']:
+        answer = input(f'Estimated download costs: {0.33*athena_lookup.download_table_length*10**-6:.2f}$. Continue? [y]/[n]').lower()
+    else:
+        answer = 'y'
 
 
 
@@ -78,9 +88,10 @@ if __name__ == '__main__':
     else:
         raise Exception('Download batch job aborted.')
 
-    # table_name = 'hyperlinks_res'
     res_path = f's3://{cfg["output_bucket"]}/{result_output_path}/'
     res_sample = pd.read_parquet(res_path + 'batch_n_0.parquet')
+    res = wr.s3.read_parquet(path=res_path)
+    res[(res.keyword_paragraphs.str.len() > 0) & (res.content_languages=='eng')].keyword_paragraphs.sample(10).values
     # res_cols = res_sample.columns.tolist()
     # res_cols = ' string, '.join(res_cols) + ' string'
     # query = f"""CREATE EXTERNAL TABLE IF NOT EXISTS {table_name}
