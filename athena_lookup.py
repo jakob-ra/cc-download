@@ -14,7 +14,8 @@ class Athena_lookup():
         - path: S3 path where the results will be stored
         - database: Athena database where the results will be stored
     s3path_url_list : str
-        S3 path to the list of URLs to be queried (needs to be a folder with csv file(s) with one URL per line,
+        S3 path to the list of URLs to be queried (needs to be a folder with csv file(s) with one URL per
+        line,
         without a header, and the URLs without the protocol and subdomain, e.g.:
             example1.com
             example2.com
@@ -29,6 +30,11 @@ class Athena_lookup():
     limit_pages_url_keywords : int
         Maximum number of pages to be queried when selecting subpages based on URL keywords. If None, all
         such subpages will be queried.
+    filter_lang: str
+        Filter for language (iso 639-3 code) of the subpages to download, set to None if not needed
+    one_snapshot_per_url: bool
+        If a URL is in more than one of the specified crawls, use this option to only keep the first
+        crawl. Only changes behavior if multiple crawls are specified.
     athena_price_per_tb : float
         Price per TB of data queried in Athena (see https://aws.amazon.com/athena/pricing/)
     wait_seconds : int
@@ -41,9 +47,11 @@ class Athena_lookup():
     -------
     Athena_lookup object
     """
+
     def __init__(self, aws_params: dict, s3path_url_list, crawls: list, n_subpages: int,
-                 filter_lang: str | None = None, url_keywords: list | None = None, limit_pages_url_keywords=100,
-                 athena_price_per_tb=5, wait_seconds=3600, limit_cc_table=10000, keep_ccindex=False):
+                 url_keywords: list | None = None, limit_pages_url_keywords=100,
+                 filter_lang: str | None = None, one_snapshot_per_url=False, athena_price_per_tb=5,
+                 wait_seconds=3600, limit_cc_table=10000, keep_ccindex=False):
         self.athena_client = boto3.client('athena')
         self.s3_client = boto3.client('s3')
         self.aws_params = aws_params
@@ -52,10 +60,10 @@ class Athena_lookup():
         self.n_subpages = n_subpages
         self.url_keywords = url_keywords
         self.filter_lang = filter_lang
+        self.one_snapshot_per_url = one_snapshot_per_url
         self.athena_price_per_tb = athena_price_per_tb
         self.wait_seconds = wait_seconds
-        self.limit_cc_table = limit_cc_table  # to keep costs low for debugging; this should be None for
-        # full table
+        self.limit_cc_table = limit_cc_table  # to keep costs low for debugging; this should be None for full table
         self.total_cost = 0
         self.ccindex_table_name = 'ccindex'
         self.keep_ccindex = keep_ccindex
@@ -329,12 +337,14 @@ class Athena_lookup():
     def deduplicate_download_table(self):
         """CommonCrawl sometimes crawls the same URL multiple times because of redirects. This removes
         duplicate URLs from the download table, keeping only the one with the largest payload size,
-        i.e. the most content. """
+        i.e. the most content. If one_snapshot_per_url=True and a URL is present in multiple crawls,
+        keeps only the version with the biggest payload (if tied, use the first crawl). """
+        partition_by = 'crawl' if self.one_snapshot_per_url else '(url, crawl)'
         query = f"""create table urls_merged_cc_to_download_deduplicated as
                     select {self.output_columns}
                     from
                     (select urls_merged_cc_to_download_unsorted.*, 
-                    row_number() over(partition by (url, crawl) order by (warc_record_offset - warc_record_end) desc) as rn
+                    row_number() over(partition by {partition_by} order by ((warc_record_offset - warc_record_end), fetch_time) desc) as rn
                     from urls_merged_cc_to_download_unsorted) as u
                     where rn=1"""
 
