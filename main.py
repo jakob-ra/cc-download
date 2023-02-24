@@ -21,17 +21,17 @@ if __name__ == '__main__':
 
     # available_crawls = pd.read_csv('common-crawls.txt')
 
-    ## hardcode keywords into process_page.py
-    keywords = pd.read_csv(cfg["keywords_path"], header=None)[0].tolist() if cfg["keywords_path"] else None
-    with open('process_page.py', 'r') as f:
-        filedata = f.read()
-    filedata = re.sub(r'keywords = (.+)\n', f'keywords = {keywords}\n', filedata)
-    with open('process_page.py', 'w') as f:
-        f.write(filedata)
-
     ## upload process_page.py to s3 to be used by batch jobs
     s3 = boto3.client('s3')
     s3.upload_file('process_page.py', cfg['output_bucket'], 'scripts/process_page.py')
+
+    ## upload keywords to s3 to be used by batch jobs
+    with open('process_page.py', 'r') as f:
+        filedata = f.read()
+    filedata = re.sub('OUTPUTBUCKETPLACEHOLDER', f'{cfg["output_bucket"]'}, filedata)
+    with open('process_page.py', 'w') as f:
+        f.write(filedata)
+    s3.upload_file(cfg['url_keywords_path'], cfg['output_bucket'], 'keywords/url_keywords.txt')
 
     ## run athena lookup
     result_output_path = cfg['result_output_path'] + '/' + '_'.join(cfg['crawls']) # path in output_bucket to store the downloads in batches

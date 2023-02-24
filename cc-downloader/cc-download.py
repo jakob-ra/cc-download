@@ -34,11 +34,6 @@ if __name__ == "__main__":
     parser.add_argument("--result_output_path", type=str, required=True)
     args = parser.parse_args()
 
-    # download processing script from s3
-    s3 = boto3.resource('s3')
-    s3.Bucket(args.output_bucket).download_file('scripts/process_page.py', 'process_page_script.py')
-    from process_page_script import process_page
-
     if "AWS_BATCH_JOB_ARRAY_INDEX" in os.environ:
         batch_n = os.environ['AWS_BATCH_JOB_ARRAY_INDEX']
         batch_n = int(batch_n)
@@ -63,6 +58,9 @@ if __name__ == "__main__":
     # initialize s3
     s3client = boto3.client('s3', region_name='us-east-1', use_ssl=False)
 
+    # download processing script from s3
+    s3client.Bucket(args.output_bucket).download_file('scripts/process_page.py', 'process_page_script.py')
+    from process_page_script import process_page
 
    # download paragraphs and fill into new column
     print('Starting download...')
