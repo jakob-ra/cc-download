@@ -4,7 +4,6 @@ from aws_config import aws_configure_credentials
 from aws_batch import AWSBatch
 import yaml
 import boto3
-import re
 
 if __name__ == '__main__':
     ## read config file
@@ -26,11 +25,6 @@ if __name__ == '__main__':
     s3.upload_file('process_page.py', cfg['output_bucket'], 'scripts/process_page.py')
 
     ## upload keywords to s3 to be used by batch jobs
-    with open('process_page.py', 'r') as f:
-        filedata = f.read()
-    filedata = re.sub('OUTPUTBUCKETPLACEHOLDER', f'{cfg["output_bucket"]'}, filedata)
-    with open('process_page.py', 'w') as f:
-        f.write(filedata)
     s3.upload_file(cfg['url_keywords_path'], cfg['output_bucket'], 'keywords/url_keywords.txt')
 
     ## run athena lookup
@@ -102,3 +96,6 @@ if __name__ == '__main__':
     #     save_results_script = f.read()
     #
     # exec(save_results_script, globals(), {'athena_lookup': athena_lookup, 'table_name': table_name})
+
+    # df = pd.read_parquet('s3://cc-download-test/test/batch_n_0.parquet')
+    # df = pd.concat([df.drop(['result'], axis=1), df['result'].apply(pd.Series)], axis=1)

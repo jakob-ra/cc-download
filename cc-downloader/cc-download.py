@@ -1,30 +1,9 @@
 import boto3
-from warcio.archiveiterator import ArchiveIterator
-import time
-from io import BytesIO
 import os
 import argparse
 import awswrangler as wr
 from utils import exponential_backoff
-
-def fetch_process_warc_records(row, s3client, page_process_func):
-    """Fetch all WARC records defined by filenames and offsets in batch,
-    parse the records and the contained HTML pages using the provided function page_process_func,
-    and return the results. """
-
-    warc_path, offset, end = row.warc_filename, str(row.warc_record_offset), str(row.warc_record_end)
-
-    rangereq = 'bytes={}-{}'.format(offset, end)
-
-    response = exponential_backoff(s3client.get_object, Bucket='commoncrawl', Key=warc_path, Range=rangereq)
-
-    record_stream = BytesIO(response["Body"].read())
-
-    for record in ArchiveIterator(record_stream): # there is only one record in the byte stream
-        if record.rec_type == 'response':
-            page = record.content_stream().read()
-            return page_process_func(page)
-
+import pandas as pd
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -50,38 +29,27 @@ if __name__ == "__main__":
     # read cc-index table with warc filenames and byte positions
     partition_n = batch_n//args.batches_per_partition + 1
     batch_n_within_partition = batch_n % args.batches_per_partition
-    query = f'SELECT * FROM urls_merged_cc_to_download WHERE partition={partition_n} ORDER BY crawl, url_host_tld, fetch_time OFFSET {batch_n_within_partition*args.batch_size} LIMIT {args.batch_size}'
+    query = f"""SELECT * FROM urls_merged_cc_to_download 
+    ORDER BY crawl, url_host_tld, fetch_time 
+    OFFSET {batch_n_within_partition * args.batch_size} LIMIT {args.batch_size}"""
 
     df = exponential_backoff(wr.athena.read_sql_query, sql=query, database='ccindex', boto3_session=session)
     assert len(df) > 1, "Empty input table!"
+
+    keywords = pd.read_csv(f's3://{args.output_bucket}/keywords/url_keywords.txt',
+                           header=None).squeeze().to_list()
+
+    output_path = f's3://{args.output_bucket}/{args.result_output_path}/batch_n_{batch_n}.parquet'
 
     # initialize s3
     s3client = boto3.client('s3', region_name='us-east-1', use_ssl=False)
 
     # download processing script from s3
-    s3client.Bucket(args.output_bucket).download_file('scripts/process_page.py', 'process_page_script.py')
-    from process_page_script import process_page
+    s3client.download_file(args.output_bucket, 'scripts/process_page.py', 'process_page_script.py')
+    from process_page_script import CCDownloader
 
-   # download paragraphs and fill into new column
-    print('Starting download...')
-    start = time.process_time()
-    df['result'] = df.apply(lambda row: fetch_process_warc_records(row, s3client, process_page), axis=1)
-    # if returned result is tuple, split into multiple columns
-    if type(df['result'].iloc[0]) is tuple:
-        print('Splitting result into multiple columns...')
-        result_len = len(df['result'].iloc[0])
-        for i in range(result_len):
-            df[f'result_{i}'] = df['result'].apply(lambda x: x[i])
-        df.drop(columns=['result'], inplace=True)
-    print(f'Success! Finished downloading and processing in {time.process_time() - start} seconds.')
+    cc_downloader = CCDownloader(df, s3client, output_path, keywords=keywords)
+    cc_downloader.run()
 
-    # drop offsets
-    df.drop(columns=['warc_filename', 'warc_record_offset', 'warc_record_end'], inplace=True)
 
-    # drop rows with empty results
-    df = df[df['result'].str.len() > 0]
 
-    # save to S3
-    s3_path = f's3://{args.output_bucket}/{args.result_output_path}/batch_n_{batch_n}.parquet'
-    wr.s3.to_parquet(df=df, path=s3_path, index=False, compression='gzip')
-    print(f'Results saved to: {s3_path}')
