@@ -70,8 +70,6 @@ def test_processing():
 
     return process_page(page, 'siemens.com', keywords=keywords)
 
-test_processing()
-
 class CCDownloader:
     """Class for downloading and processing Common Crawl data. """
     def __init__(self, download_table, s3client, output_path, keywords=None):

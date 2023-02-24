@@ -52,7 +52,7 @@ class Athena_lookup():
                  url_keywords: list | None = None, limit_pages_url_keywords=100,
                  filter_lang: str | None = None, one_snapshot_per_url=False, athena_price_per_tb=5,
                  wait_seconds=3600, limit_cc_table=10000, keep_ccindex=False):
-        self.athena_client = boto3.client('athena')
+        self.athena_client = boto3.client('athena', region_name='us-east-1')
         self.s3_client = boto3.client('s3')
         self.aws_params = aws_params
         self.s3path_url_list = s3path_url_list

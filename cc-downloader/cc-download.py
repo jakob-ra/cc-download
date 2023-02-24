@@ -30,14 +30,14 @@ if __name__ == "__main__":
     partition_n = batch_n//args.batches_per_partition + 1
     batch_n_within_partition = batch_n % args.batches_per_partition
     query = f"""SELECT * FROM urls_merged_cc_to_download 
+    WHERE partition={partition_n}
     ORDER BY crawl, url_host_tld, fetch_time 
     OFFSET {batch_n_within_partition * args.batch_size} LIMIT {args.batch_size}"""
 
     df = exponential_backoff(wr.athena.read_sql_query, sql=query, database='ccindex', boto3_session=session)
     assert len(df) > 1, "Empty input table!"
 
-    keywords = pd.read_csv(f's3://{args.output_bucket}/keywords/url_keywords.txt',
-                           header=None).squeeze().to_list()
+    keywords = pd.read_csv(f's3://{args.output_bucket}/keywords/keywords.txt', header=None).squeeze().to_list()
 
     output_path = f's3://{args.output_bucket}/{args.result_output_path}/batch_n_{batch_n}.parquet'
 
