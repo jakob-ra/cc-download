@@ -26,7 +26,8 @@ if __name__ == '__main__':
     s3.upload_file('process_page.py', cfg['output_bucket'], 'scripts/process_page.py')
 
     ## upload keywords to s3 to be used by batch jobs
-    s3.upload_file(cfg['keywords_path'], cfg['output_bucket'], 'keywords/keywords.txt')
+    if cfg['keywords_path']:
+        s3.upload_file(cfg['keywords_path'], cfg['output_bucket'], 'keywords/keywords.txt')
 
     ## run athena lookup
     aws_params = {
