@@ -68,18 +68,19 @@ class AWSBatch:
         time.sleep(5)
 
     def register_job_definition(self):
+        command = ["python3",
+                  "cc-download.py", f"--batch_size={self.batch_size}",
+                  f"--batches_per_partition={self.batches_per_partition}",
+                  f"--output_bucket={self.output_bucket}",
+                  f"--result_output_path={self.result_output_path}"]
+        if self.keywords_path:
+            command.append(f"--keywords_path={self.keywords_path}")
         self.batch_client.register_job_definition(jobDefinitionName=self.batch_env_name, type='container',
                 containerProperties={'image': self.image_name,
                                      'resourceRequirements': [
                                         {'type': 'VCPU', 'value': str(self.vcpus), },
                                         {'type': 'MEMORY', 'value': str(self.memory), }, ],
-                                     'command':
-                                         ["python3",
-                                          "cc-download.py", f"--batch_size={self.batch_size}",
-                                          f"--batches_per_partition={self.batches_per_partition}",
-                                          f"--output_bucket={self.output_bucket}",
-                                          f"--result_output_path={self.result_output_path}",
-                                          f"--keywords_path={self.keywords_path}",],
+                                     'command': command,
                                     'jobRoleArn': self.aws_role,
                                     'executionRoleArn': self.aws_role,
                                     'networkConfiguration': {'assignPublicIp': 'ENABLED', }},
