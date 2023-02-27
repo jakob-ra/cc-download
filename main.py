@@ -28,6 +28,7 @@ if __name__ == '__main__':
     ## upload keywords to s3 to be used by batch jobs
     if cfg['keywords_path']:
         s3.upload_file(cfg['keywords_path'], cfg['output_bucket'], 'keywords/keywords.txt')
+        cfg['keywords_path'] = f's3://{cfg["output_bucket"]}/keywords/keywords.txt'
 
     ## run athena lookup
     aws_params = {
@@ -81,6 +82,7 @@ if __name__ == '__main__':
     if answer == 'y':
         aws_batch = AWSBatch(req_batches, cfg["batch_size"], batches_per_partition, cfg['output_bucket'],
                              result_output_path, cfg['image_name'], cfg['batch_role'],
+                             keywords_path=cfg['keywords_path'],
                              retry_attempts=cfg['retry_attempts'],
                              attempt_duration=cfg['attempt_duration'],
                              keep_compute_env_job_queue=keep_compute_env_job_queue,

@@ -11,6 +11,7 @@ if __name__ == "__main__":
     parser.add_argument("--batches_per_partition", type=int, required=True)
     parser.add_argument("--output_bucket", type=str, required=True)
     parser.add_argument("--result_output_path", type=str, required=True)
+    parser.add_argument("--keywords_path", type=str, default=None)
     args = parser.parse_args()
 
     if "AWS_BATCH_JOB_ARRAY_INDEX" in os.environ:
@@ -37,9 +38,9 @@ if __name__ == "__main__":
     df = exponential_backoff(wr.athena.read_sql_query, sql=query, database='ccindex', boto3_session=session)
     assert len(df) > 1, "Empty input table!"
 
-    try:
-        keywords = pd.read_csv(f's3://{args.output_bucket}/keywords/keywords.txt', header=None).squeeze().to_list()
-    except:
+    if args.keywords_path:
+        keywords = pd.read_csv(args.keywords_path, header=None).squeeze().tolist()
+    else:
         keywords = None
 
     output_path = f's3://{args.output_bucket}/{args.result_output_path}/batch_n_{batch_n}.parquet'

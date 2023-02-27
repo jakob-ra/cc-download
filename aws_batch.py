@@ -12,6 +12,7 @@ class AWSBatch:
         result_output_path (str): Path to store the results in the S3 bucket.
         image_name (str): Name of the docker image to use.
         aws_role (str): AWS role to use.
+        keywords_path (str): Path to the keywords file.
         retry_attempts (int): Number of times to retry a failed job.
         attempt_duration (int): Duration of each attempt in seconds.
         keep_compute_env_job_queue (bool): Whether to keep the compute environment and job queue.
@@ -20,7 +21,7 @@ class AWSBatch:
         memory (int): Amount of memory to use per container. Possible values: 512, 1024, 2048, 4096.
     """
     def __init__(self, req_batches, batch_size, batches_per_partition, output_bucket, result_output_path,
-                image_name, aws_role, retry_attempts=3, attempt_duration=1800,
+                image_name, aws_role, keywords_path=None, retry_attempts=3, attempt_duration=1800,
                 keep_compute_env_job_queue=False, batch_env_name='cc', vcpus=0.25, memory=512):
         self.req_batches = req_batches
         self.batch_size = batch_size
@@ -28,6 +29,7 @@ class AWSBatch:
         self.output_bucket = output_bucket
         self.result_output_path = result_output_path
         self.aws_role = aws_role
+        self.keywords_path = keywords_path
         self.retry_attempts = retry_attempts
         self.image_name = image_name
         self.keep_compute_env_job_queue = keep_compute_env_job_queue
@@ -76,7 +78,8 @@ class AWSBatch:
                                           "cc-download.py", f"--batch_size={self.batch_size}",
                                           f"--batches_per_partition={self.batches_per_partition}",
                                           f"--output_bucket={self.output_bucket}",
-                                          f"--result_output_path={self.result_output_path}"],
+                                          f"--result_output_path={self.result_output_path}",
+                                          f"--keywords_path={self.keywords_path}",],
                                     'jobRoleArn': self.aws_role,
                                     'executionRoleArn': self.aws_role,
                                     'networkConfiguration': {'assignPublicIp': 'ENABLED', }},
