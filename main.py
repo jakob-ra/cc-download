@@ -87,18 +87,3 @@ if __name__ == '__main__':
         aws_batch.run()
     else:
         raise Exception('Download batch job aborted.')
-
-    res_path = f's3://{cfg["output_bucket"]}/{result_output_path}/'
-    res_sample = pd.read_parquet(res_path + 'batch_n_0.parquet')
-    res = wr.s3.read_parquet(path=res_path)
-    res[(res.keyword_paragraphs.str.len() > 0) & (res.content_languages=='eng')].keyword_paragraphs.sample(10).values
-    # res_cols = res_sample.columns.tolist()
-    # res_cols = ' string, '.join(res_cols) + ' string'
-    # query = f"""CREATE EXTERNAL TABLE IF NOT EXISTS {table_name}
-    #         ({res_cols})
-    #         ROW FORMAT DELIMITED
-    #         FIELDS TERMINATED BY ','
-    #         LINES TERMINATED BY '\n'
-    #         LOCATION '{res_path}'
-    #         TBLPROPERTIES ('skip.header.line.count'='1')"""
-    # athena_lookup.execute_query(query)
