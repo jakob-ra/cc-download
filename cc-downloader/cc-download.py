@@ -37,7 +37,10 @@ if __name__ == "__main__":
     df = exponential_backoff(wr.athena.read_sql_query, sql=query, database='ccindex', boto3_session=session)
     assert len(df) > 1, "Empty input table!"
 
-    keywords = pd.read_csv(f's3://{args.output_bucket}/keywords/keywords.txt', header=None).squeeze().to_list()
+    try:
+        keywords = pd.read_csv(f's3://{args.output_bucket}/keywords/keywords.txt', header=None).squeeze().to_list()
+    except:
+        keywords = None
 
     output_path = f's3://{args.output_bucket}/{args.result_output_path}/batch_n_{batch_n}.parquet'
 
