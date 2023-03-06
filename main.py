@@ -11,9 +11,8 @@ if __name__ == '__main__':
         cfg = yaml.safe_load(ymlfile)
 
     ## debug settings
-    keep_compute_env_job_queue = True if cfg['debug'] else False
     keep_ccindex = True if cfg['debug'] else False
-    limit_cc_table = 1000000 if cfg['debug'] else None
+    limit_cc_table = 1e6 if cfg['debug'] else None
 
     ## authenticate to AWS
     aws_configure_credentials(cfg['credentials_csv_filepath'], cfg['region'], cfg['profile_name'])
@@ -97,7 +96,7 @@ if __name__ == '__main__':
                              keywords_path=cfg['keywords_path'],
                              retry_attempts=cfg['retry_attempts'],
                              attempt_duration=cfg['attempt_duration'],
-                             keep_compute_env_job_queue=keep_compute_env_job_queue,
+                             keep_compute_env_job_queue=cfg['keep_compute_env_job_queue'],
                              vcpus=cfg['vcpus'], memory=cfg['memory'])
         aws_batch.run()
     else:

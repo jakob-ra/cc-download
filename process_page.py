@@ -49,14 +49,9 @@ class PageProcessor:
     def process_page(self):
         """Process HTML page, return relevant paragraphs and non-local links"""
         self.extract_texts()
-        if self.keywords:
-            self.get_keyword_mentioning_texts()
-        self.extract_links()
+        self.get_keyword_mentioning_texts()
 
-        if self.keywords:
-            return {'all_paragraphs': self.texts, 'keyword_paragraphs': self.keyword_mentioning_texts, 'links': self.links}
-        else:
-            return {'all_paragraphs': self.texts, 'links': self.links}
+        return {'keyword_paragraphs': self.keyword_mentioning_texts}
 
 def process_page(page: str, root_url, keywords: list = None):
     """Process HTML page, return relevant paragraphs and non-local links"""
@@ -115,11 +110,12 @@ class CCDownloader:
         self.df.drop(columns=['warc_filename', 'warc_record_offset', 'warc_record_end'], inplace=True)
 
         # drop rows with empty result
-        # self.df = self.df[self.df['result'].str.len() > 0]
+        self.df = self.df[self.df['keyword_paragraphs'].str.len() > 0]
 
     def save_results(self):
-        wr.s3.to_parquet(df=self.df, path=self.output_path, index=False, compression='gzip')
-        print(f'Results saved to: {self.output_path}')
+        if len(self.df) > 0:
+            wr.s3.to_parquet(df=self.df, path=self.output_path, index=False, compression='gzip')
+            print(f'Results saved to: {self.output_path}')
 
     def run(self):
         self.download_process_input_table()
