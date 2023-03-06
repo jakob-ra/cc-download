@@ -4,7 +4,6 @@ from aws_config import aws_configure_credentials
 from aws_batch import AWSBatch
 import yaml
 import boto3
-import awswrangler as wr
 
 if __name__ == '__main__':
     ## read config file
@@ -21,8 +20,12 @@ if __name__ == '__main__':
 
     # available_crawls = pd.read_csv('common-crawls.txt')
 
-    ## upload process_page.py to s3 to be used by batch jobs
+    ## upload url list to s3
     s3 = boto3.client('s3', region_name=cfg['region'], use_ssl=False)
+    s3.upload_file(cfg['url_list_path'], cfg['output_bucket'], 'url-list/url-list.py')
+    cfg['url_list_path'] = f's3://{cfg["output_bucket"]}/url-list/'
+
+    ## upload process_page.py to s3 to be used by batch jobs
     s3.upload_file('process_page.py', cfg['output_bucket'], 'scripts/process_page.py')
 
     ## upload keywords to s3 to be used by batch jobs
@@ -30,14 +33,23 @@ if __name__ == '__main__':
         s3.upload_file(cfg['keywords_path'], cfg['output_bucket'], 'keywords/keywords.txt')
         cfg['keywords_path'] = f's3://{cfg["output_bucket"]}/keywords/keywords.txt'
 
+
+    ## upload url keywords
+    if cfg['url_keywords_path']:
+        s3.upload_file(cfg['url_keywords_path'], cfg['output_bucket'], 'url-keywords/url-keywords.csv')
+
+    ## upload config file to s3
+    s3.upload_file('config.yml', cfg['output_bucket'], 'config/config.yml')
+
     ## run athena lookup
     aws_params = {
         'region': cfg['region'],
         'catalog': 'AwsDataCatalog',
         'database': 'ccindex',
         'bucket': cfg['output_bucket'],
-        'path': cfg['index_output_path'],
+        'path': 'indexout',
     }
+
     if cfg['url_keywords_path']:
         url_keywords = pd.read_csv(cfg['url_keywords_path'], header=None, usecols=[0]).squeeze().tolist()
         cfg['url_keywords_path'] = url_keywords
@@ -48,7 +60,7 @@ if __name__ == '__main__':
         answer = 'y'
 
     if answer == 'y':
-        athena_lookup = Athena_lookup(aws_params, cfg['s3path_url_list'], cfg['crawls'],
+        athena_lookup = Athena_lookup(aws_params, cfg['url_list_path'], cfg['crawls'],
                                       cfg['n_subpages_per_domain'], url_keywords=cfg['url_keywords_path'],
                                       limit_pages_url_keywords=cfg['limit_pages_url_keywords'],
                                       filter_lang=cfg['filter_lang'],
@@ -68,9 +80,10 @@ if __name__ == '__main__':
         batches_per_partition = 1
         cfg["batch_size"] = 50
         cfg['retry_attempts'] = 1
-        cfg['result_output_path'] = 'test'
+        result_output_path = 'test'
+    else:
+        result_output_path = 'res'
 
-    result_output_path = cfg['result_output_path'] + '/' + '_'.join(cfg['crawls']) # path in output_bucket to store the downloads in batches
     print(f'Splitting {athena_lookup.download_table_length:,} subpages into {req_batches:,} batches of size {cfg["batch_size"]:,}.')
     if not cfg['debug']:
         answer = input(f'Estimated download costs: {0.33*athena_lookup.download_table_length*10**-6:.2f}$. Continue? [y]/[n]').lower()

@@ -153,3 +153,4 @@ cython_debug/
 #.idea/
 .idea/csv-plugin.xml
 /process_url_list_keywords.py
+/swiss-survey.csv

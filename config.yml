@@ -5,14 +5,12 @@ credentials_csv_filepath: 'C:\Users\Jakob\Downloads\jakob-s3-ec2-athena_accessKe
 batch_role: 'arn:aws:iam::425352751544:role/cc-download' # role to use for the batch job, needs access to S3, Athena, AmazonElasticContainerRegistryPublic
 
 ## input paths
-s3path_url_list: 's3://cc-download-test/url-list/swiss-survey' # path to s3 FOLDER where url list is stored, starts with 's3://'
-url_keywords_path: 'url_keywords.csv' # path to FILE with url keywords (downloads subpages with these keywords in the url), set to null if not needed
-keywords_path: 'keywords.csv' # path to FILE with keywords (downloads html paragraphs with any of these keywords), set to null if not needed
+url_list_path: 'swiss-survey.csv' # path to url list
+url_keywords_path: 'url_keywords.csv' # path to file with url keywords (downloads subpages with these keywords in the url), set to null if not needed
+keywords_path: 'keywords.csv' # path to fill with keywords (downloads html paragraphs with any of these keywords), set to null if not needed
 
 ## output paths
-output_bucket: 'cc-download-test' # bucket to store the results
-index_output_path: 'indexout' # path in output_bucket to store the index results
-result_output_path: 'swiss-survey-res' # path in output_bucket to store the downloads in batches
+output_bucket: 'cc-download-swiss-survey' # s3 bucket to store the results, use a new bucket for each experiment
 
 ## download settings
 crawls: # crawls to include (can be multiple), for list see https://commoncrawl.org/the-data/get-started/
@@ -22,8 +20,8 @@ crawls: # crawls to include (can be multiple), for list see https://commoncrawl.
   - 'CC-MAIN-2021-10'
   - 'CC-MAIN-2021-17'
   - 'CC-MAIN-2021-21'
-n_subpages_per_domain: 20 # maximum number of subpages to download per domain (downloads the n_subpages_per_domain subpages with the shortest url). Set to 0 if only subpages containing a keyword from the url keyword list should be downloaded. Set to null if all subpages should be downloaded.
-limit_pages_url_keywords: 100 # maximum number of subpages containing a keyword from the url keyword list to download per domain
+n_subpages_per_domain: 30 # maximum number of subpages to download per domain (downloads the n_subpages_per_domain subpages with the shortest url). Set to 0 if only subpages containing a keyword from the url keyword list should be downloaded. Set to null if all subpages should be downloaded.
+limit_pages_url_keywords: 200 # maximum number of subpages containing a keyword from the url keyword list to download per domain
 filter_lang: null # 'eng' # filter for language (iso 639-3 code) of the subpages to download, set to null if not needed
 one_snapshot_per_url: True # If one_snapshot_per_url=True and a URL is present in multiple crawls, keeps only the version with the biggest payload (if tied, use the first crawl)
 
