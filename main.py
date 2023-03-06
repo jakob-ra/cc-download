@@ -84,13 +84,12 @@ if __name__ == '__main__':
     else:
         result_output_path = 'res'
 
-    print(f'Splitting {athena_lookup.download_table_length:,} subpages into {req_batches:,} batches of size {cfg["batch_size"]:,}.')
+    print(f'Splitting {athena_lookup.download_table_length:,} subpages into {req_batches:,} batches')
+
     if not cfg['debug']:
         answer = input(f'Estimated download costs: {0.33*athena_lookup.download_table_length*10**-6:.2f}$. Continue? [y]/[n]').lower()
     else:
         answer = 'y'
-
-
 
     if answer == 'y':
         aws_batch = AWSBatch(req_batches, cfg["batch_size"], batches_per_partition, cfg['output_bucket'],
