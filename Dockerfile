@@ -6,6 +6,10 @@ COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
+RUN python3 -c "import nltk; nltk.download('punkt')"
+
+#RUN python3 -m textblob.download_corpora lite
+
 ## to run cc-download.py locally:
 # python cc-download.py --batch_size=10 --batches_per_partition=1 --output_bucket=cc-download-test --result_output_path=test
 
