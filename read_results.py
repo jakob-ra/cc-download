@@ -22,10 +22,14 @@ res_sample = pd.read_parquet(res_path + 'batch_n_0.parquet')
 res = wr.s3.read_parquet(path=res_path)
 
 print(f'Number of unique domains with keyword paragraphs: '
-      f'{res[res.keyword_paragraphs.str.len() > 0].explode("keyword_paragraphs").url_host_registered_domain.nunique()}')
+      f'{res[res.keyword_paragraphs.str.len() > 0].url_host_registered_domain.nunique()}')
 
 res[(res.keyword_paragraphs.str.len() > 0) & (res.content_languages == 'eng')].keyword_paragraphs.sample(
     10).values
+
+res.url_host_registered_domain.nunique()
+
+res.to_pickle('C:/Users/Jakob/Downloads/cc-download-swiss-survey.pkl')
 
 # create hyperlink network
 res['outgoing_links'] = res.apply(
