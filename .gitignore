@@ -155,3 +155,4 @@ cython_debug/
 /process_url_list_keywords.py
 /swiss-survey.csv
 /hassan_unique_urls.csv
+/orbis_europe_urls.csv
