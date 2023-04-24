@@ -2,8 +2,8 @@ import boto3
 import os
 import argparse
 import awswrangler as wr
-from utils import exponential_backoff
 import pandas as pd
+from utils import exponential_backoff
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
