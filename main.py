@@ -21,7 +21,7 @@ if __name__ == '__main__':
 
     ## upload url list to s3
     s3 = boto3.client('s3', region_name=cfg['region'], use_ssl=False)
-    s3.upload_file(cfg['url_list_path'], cfg['output_bucket'], 'url-list/url-list.csv')
+    # s3.upload_file(cfg['url_list_path'], cfg['output_bucket'], 'url-list/url-list.csv')
     cfg['url_list_path'] = f's3://{cfg["output_bucket"]}/url-list/'
 
     ## upload process_page.py to s3 to be used by batch jobs

@@ -91,8 +91,7 @@ class Athena_lookup():
             ## This function executes the query and returns the query execution ID
             response_query_execution_id = athena_client.start_query_execution(QueryString=params['query'],
                  QueryExecutionContext={'Database': params['database']},
-                 ResultConfiguration={'OutputLocation': 's3://' + params['bucket'] + '/' + params['path']}
-                 )
+                 ResultConfiguration={'OutputLocation': 's3://' + params['bucket'] + '/' + params['path'] + '/'})
 
             while wait_seconds > 0:
                 wait_seconds = wait_seconds - 1
