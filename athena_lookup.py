@@ -254,7 +254,7 @@ class Athena_lookup():
     def inner_join(self):
         # limit (for debugging)
         if self.limit_cc_table:
-            limit = 'LIMIT ' + str(self.limit_cc_table)
+            limit = 'LIMIT ' + str(int(self.limit_cc_table))
         else:
             limit = ''
 
@@ -277,7 +277,8 @@ class Athena_lookup():
         WHERE {crawls}
           AND subset = 'warc'
           AND {self.ccindex_table_name}.url_host_registered_domain = url_list.websiteaddress
-        {limit}"""
+        {limit}
+        """
         self.execute_query(query)
 
     def select_lang(self):
