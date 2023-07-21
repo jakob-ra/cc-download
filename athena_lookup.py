@@ -75,8 +75,8 @@ class Athena_lookup():
             self.keep_ccindex = keep_ccindex
         self.limit_pages_url_keywords = limit_pages_url_keywords
         self.keep_urls_merged_cc = keep_urls_merged_cc
-        self.output_columns = """url, url_host_name, url_host_registered_domain, url_host_tld, fetch_time, 
-        warc_filename, warc_record_offset, warc_record_end, crawl, content_languages"""
+        self.output_columns = """url, url_host_name, url_host_registered_domain, url_host_tld, fetch_time,
+        content_digest, warc_filename, warc_record_offset, warc_record_end, crawl, content_languages"""
 
     @staticmethod
     def get_var_char_values(d):
@@ -267,6 +267,7 @@ class Athena_lookup():
                url_host_registered_domain,
                url_host_tld,
                fetch_time,
+               content_digest,
                warc_filename,
                warc_record_offset,
                warc_record_offset + warc_record_length - 1 as warc_record_end,

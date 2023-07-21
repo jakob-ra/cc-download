@@ -66,6 +66,7 @@ if __name__ == '__main__':
                                       one_snapshot_per_url=cfg['one_snapshot_per_url'],
                                       limit_cc_table=limit_cc_table, keep_ccindex=keep_ccindex,
                                       keep_urls_merged_cc=cfg['keep_urls_merged_cc'])
+        athena_lookup.partition_download_table()
         athena_lookup.run_lookup()
     else:
         raise Exception('Lookup aborted.')
