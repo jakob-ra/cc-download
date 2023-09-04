@@ -14,19 +14,20 @@ output_bucket: 'cc-download-orbis-global' # s3 bucket to store the results, use 
 
 ## download settings
 crawls: # crawls to include (can be multiple), for list see https://commoncrawl.org/the-data/get-started/
-  - 'CC-MAIN-2020-05'
-n_subpages_per_domain: 50 # maximum number of subpages to download per domain (downloads the n_subpages_per_domain subpages with the shortest url). Set to 0 if only subpages containing a keyword from the url keyword list should be downloaded. Set to null if all subpages should be downloaded.
+  - 'CC-MAIN-2022-49'
+n_subpages_per_domain: 8 # maximum number of subpages to download per domain (downloads the n_subpages_per_domain subpages with the shortest url). Set to 0 if only subpages containing a keyword from the url keyword list should be downloaded. Set to null if all subpages should be downloaded.
 limit_pages_url_keywords: 200 # maximum number of subpages containing a keyword from the url keyword list to download per domain
 filter_lang: null # 'eng' # filter for language (iso 639-3 code) of the subpages to download, set to null if not needed
 one_snapshot_per_url: False # If one_snapshot_per_url=True and a URL is present in multiple crawls, keeps only the version with the biggest payload (if tied, use the first crawl)
 
 ## batch settings
 image_name: 'public.ecr.aws/cc-download/cc-download:latest' # docker image to use for the batch job
-batch_size: 2000 # number of subpages to download per batch
+batch_size: 13000 # number of subpages to download per batch
 retry_attempts: 3 # number of times to retry a failed download batch
-attempt_duration: 4000 # duration in seconds to wait before retrying to download a batch
+attempt_duration: 6000 # duration in seconds to wait before retrying to download a batch
 vcpus: 0.25 # number of vcpus per container, possible values: 0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256
 memory: 512 # memory in MB per container, possible values: 512, 1024, 2048, 4096, 8192
+max_vpus: 5000 # maximum number of vcpus to use simultaneously for the batch job
 
 ## debug settings
 debug: False   # set to True to enable debug mode (only downloads 10 subpages per domain), keeps large tables, compute environment, job queue

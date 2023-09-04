@@ -20,10 +20,11 @@ class AWSBatch:
         vcpus (float): Number of vcpus to use per container. Possible values are 0.25, 0.5, 1, 2, 4.
         memory (int): Amount of memory to use per container. Possible values: 512, 1024, 2048, 4096.
     """
-    def __init__(self, req_batches, batch_size, batches_per_partition, output_bucket, result_output_path,
+    def __init__(self, req_batches, max_vcpus, batch_size, batches_per_partition, output_bucket, result_output_path,
                 image_name, aws_role, keywords_path=None, retry_attempts=3, attempt_duration=1800,
                 keep_compute_env_job_queue=False, batch_env_name='cc', vcpus=0.25, memory=512):
         self.req_batches = req_batches
+        self.max_vcpus = max_vcpus
         self.batch_size = batch_size
         self.batches_per_partition = batches_per_partition
         self.output_bucket = output_bucket
@@ -55,7 +56,7 @@ class AWSBatch:
     def create_compute_environment_fargate(self):
         self.batch_client.create_compute_environment(computeEnvironmentName=self.batch_env_name,
                 type='MANAGED', state='ENABLED',
-                computeResources={'type'  : 'FARGATE_SPOT', 'maxvCpus': self.req_batches,
+                computeResources={'type'  : 'FARGATE_SPOT', 'maxvCpus': self.max_vcpus,
                         'subnets'         : self.subnet_ids,
                         'securityGroupIds': self.security_group_ids, }, tags={'Project': 'cc-download'},
                 # serviceRole='arn:aws:iam::425352751544:role/aws-service-role/batch.amazonaws.com/AWSServiceRoleForBatch',
